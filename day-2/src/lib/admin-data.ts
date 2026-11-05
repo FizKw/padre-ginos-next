@@ -1,4 +1,5 @@
 import "server-only";
+import { cacheLife } from "next/cache";
 import { all, get, run } from "./db";
 import { failReadIfSimulated, simulateLatency } from "./demo";
 import type { OrderStatus } from "./orders";
@@ -159,6 +160,10 @@ export async function getLatestDay(): Promise<{
   orders: number;
   revenue: number;
 }> {
+  // Cached: the latest business day changes at most once a day, and the
+  // cached value must not block the live status widget on the shared DB.
+  "use cache";
+  cacheLife("hours");
   await simulateLatency("read");
   const row = await get<{ date: string; orders: number; revenue: number }>(
     `SELECT o.date, COUNT(DISTINCT o.order_id) AS orders,
@@ -176,6 +181,9 @@ export async function getLatestDay(): Promise<{
 export async function getTopPizzas(): Promise<
   { id: string; name: string; sold: number; revenue: number }[]
 > {
+  // Cached: this all-time aggregate is expensive and changes slowly.
+  "use cache";
+  cacheLife("hours");
   await simulateLatency("read");
   await new Promise((resolve) => setTimeout(resolve, 1500));
   return all(
