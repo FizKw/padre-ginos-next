@@ -1,11 +1,16 @@
 "use server";
 
-import { updateTag } from "next/cache";
+import { refresh, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
-import { updatePizzaPrices } from "@/lib/admin-data";
+import { getOrderStatus, setOrderStatus, updatePizzaPrices } from "@/lib/admin-data";
 import { pizzaExists } from "@/lib/data";
 import { shouldFail, simulateLatency } from "@/lib/demo";
 import { parsePrice } from "@/lib/format";
+import {
+  canTransition,
+  isOrderStatus,
+  STATUS_LABELS,
+} from "@/lib/orders";
 import type { PizzaSize } from "@/lib/types";
 
 const SIZES: PizzaSize[] = ["S", "M", "L"];
@@ -58,4 +63,44 @@ export async function updatePricesAction(
   // expire them now so customers see the new price on their next request
   updateTag("menu");
   redirect(`/admin/products?updated=${id}`);
+}
+
+export type StatusFormState = { error: string } | null;
+
+export async function updateOrderStatusAction(
+  _prev: StatusFormState,
+  formData: FormData,
+): Promise<StatusFormState> {
+  const rawId = formData.get("id");
+  const next = formData.get("status");
+  const orderId = typeof rawId === "string" ? Number(rawId) : NaN;
+
+  if (!Number.isInteger(orderId) || orderId < 1) {
+    return { error: "Order tidak dikenal." };
+  }
+  if (!isOrderStatus(next)) {
+    return { error: "Status tidak dikenal." };
+  }
+
+  // The current status comes from the database, not from the form:
+  // a button value can be changed in DevTools.
+  const current = await getOrderStatus(orderId);
+  if (!current) {
+    return { error: "Order tidak ditemukan." };
+  }
+  if (!canTransition(current, next)) {
+    return {
+      error: `Perubahan dari ${STATUS_LABELS[current]} ke ${STATUS_LABELS[next]} tidak diizinkan.`,
+    };
+  }
+
+  await simulateLatency("write");
+  if (await shouldFail()) {
+    return { error: "Gagal menyimpan. Coba lagi." };
+  }
+
+  await setOrderStatus(orderId, next);
+  // Orders are not cached, so refreshing the current route is enough
+  refresh();
+  return null;
 }

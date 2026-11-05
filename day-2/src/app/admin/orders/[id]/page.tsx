@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import StatusActions from "@/components/admin/StatusActions";
 import StatusBadge from "@/components/admin/StatusBadge";
 import { getOrder } from "@/lib/admin-data";
 import { formatPrice } from "@/lib/format";
@@ -29,6 +30,8 @@ export default async function OrderDetailPage({
         </div>
         <StatusBadge status={order.status} />
       </div>
+
+      <StatusActions orderId={order.id} status={order.status} />
 
       <table className="mt-6 w-full overflow-hidden rounded-xl bg-white text-left text-sm shadow-sm">
         <thead className="bg-stone-50 text-xs uppercase text-ink/60">
