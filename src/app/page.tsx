@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import MenuExplorer from "@/components/MenuExplorer";
+import PizzaOfTheDay from "@/components/PizzaOfTheDay";
 import { getFavoriteIds, getPizzas } from "@/lib/data";
 
 export default async function MenuPage() {
@@ -8,6 +9,7 @@ export default async function MenuPage() {
   const favoriteIdsPromise = getFavoriteIds();
   return (
     <section>
+      <PizzaOfTheDay />
       <h1 className="mb-6 text-3xl font-black">Menu</h1>
       <Suspense fallback={<p className="py-16 text-center text-lg">Memuat menu…</p>}>
         <MenuExplorer pizzas={pizzas} favoriteIdsPromise={favoriteIdsPromise} />

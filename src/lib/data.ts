@@ -69,6 +69,20 @@ export async function pizzaExists(id: string): Promise<boolean> {
   return row !== undefined;
 }
 
+export async function getPizzaOfTheDay(): Promise<Pizza | null> {
+  "use cache";
+  cacheLife("days");
+
+  const pizzas = await getPizzas();
+  if (pizzas.length === 0) {
+    return null;
+  }
+
+  // One pizza per day: the date is the index, so it changes at midnight
+  const day = Math.floor(Date.now() / 86_400_000);
+  return pizzas[day % pizzas.length];
+}
+
 export async function getFavoriteIds(): Promise<string[]> {
   await simulateLatency("read");
   const rows = await all<{ id: string }>(
