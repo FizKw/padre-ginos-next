@@ -1,8 +1,9 @@
 "use server";
 
 import { refresh } from "next/cache";
-import { pizzaExists, toggleFavorite } from "@/lib/data";
+import { addRating, pizzaExists, toggleFavorite } from "@/lib/data";
 import { shouldFail, simulateLatency } from "@/lib/demo";
+import { parseStars } from "@/lib/format";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -21,6 +22,27 @@ export async function toggleFavoriteAction(
 
   await toggleFavorite(pizzaId);
   // Re-render the current page on the server: hearts and header update together
+  refresh();
+  return { ok: true };
+}
+
+// A form posts FormData, and anyone can call this action: validate on the server
+export async function ratePizzaAction(
+  pizzaId: string,
+  formData: FormData,
+): Promise<ActionResult> {
+  const stars = parseStars(formData.get("stars"));
+  if (stars === null || !(await pizzaExists(pizzaId))) {
+    return { ok: false, error: "Rating tidak valid." };
+  }
+
+  await simulateLatency("write");
+  if (await shouldFail()) {
+    return { ok: false, error: "Gagal mengirim rating. Coba lagi." };
+  }
+
+  await addRating(pizzaId, stars);
+  // Fresh summary comes back from the server in the same response
   refresh();
   return { ok: true };
 }
