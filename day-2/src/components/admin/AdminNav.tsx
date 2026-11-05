@@ -9,15 +9,13 @@ const LINKS = [
   { href: "/admin/orders", label: "Order" },
 ];
 
-// The only client part of the sidebar: it needs the current URL to highlight a link
-export default function AdminNav() {
-  const pathname = usePathname();
-
+function NavLinks({ pathname }: { pathname: string | null }) {
   return (
     <nav className="flex flex-col gap-1 px-3">
       {LINKS.map(({ href, label }) => {
         const active =
-          href === "/admin" ? pathname === href : pathname.startsWith(href);
+          pathname !== null &&
+          (href === "/admin" ? pathname === href : pathname.startsWith(href));
         return (
           <Link
             key={href}
@@ -33,4 +31,14 @@ export default function AdminNav() {
       })}
     </nav>
   );
+}
+
+// The only client part of the sidebar: it needs the current URL to highlight a link
+export default function AdminNav() {
+  return <NavLinks pathname={usePathname()} />;
+}
+
+// Shown in the static shell until the URL is known (no link highlighted yet)
+export function AdminNavFallback() {
+  return <NavLinks pathname={null} />;
 }
